@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+
+  <svg id="svg" width="500" height="500"></svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    // Your Script here...
+    d3.csv('cities.csv')
+      .then(data => {
+        const colorScale = d3.scaleOrdinal()
+          .domain(['USA', 'Pakistan', 'Italy', 'Brazil', 'Canada'])
+          .range(['cornflowerblue', 'gold', 'green', 'tomato', 'purple']);
+
+        d3.select('#svg')
+          .style('background-color', 'lightgray')
+          .style('border', '1px solid')
+          .selectAll('circle')
+          .data(data)
+          .enter()
+          .append('circle')
+          .attr('cx', d => parseFloat(d.x) * 2 + 250)
+          .attr('cy', d => parseFloat(d.y) * 2 + 250)
+          .attr('r', d => parseInt(Math.sqrt(d.population/Math.PI)) * 0.03)
+          .attr('fill', (d, i) => `hsl(${360 / data.length * i}, 100%, 50%)`)
+          .attr('opacity', 0.25)
+      })
+  </script>
+</body>
+</html>
