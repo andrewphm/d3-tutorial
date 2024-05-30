@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+
+    let data = [5,6,2,8,4,9,1,15,20,16,11];
+    let max = Math.max(...data);
+    let normalizedData = data.map((d) => d / max );
+
+    d3.select('body')        // select an element to host
+      .selectAll('div')			 // select all the elements you want to work with
+      .data(normalizedData.sort()) // define your data
+      .enter()               // enter your data
+      .append('div')
+      .text((d)=>`$${d.toFixed(2)}`)  // add text to the div
+      .style('height', '4rem') // padding: 1em
+      .style('color', (d) => `hsl(${d / 10 * 360}, 100%, 50%)`) // padding: 1em
+      .style('font-family', 'Helvetica') // padding: 1em
+      .style('display', 'flex')
+      .style('align-items', 'center')
+      .style('background-image', 'linear-gradient(to left, #e66465, #9198e5)') // background-color: red
+      .style('margin', '1px') // margin: 1px
+      .style('width', (d) => `${d * 100}%`) // set width based on data
+      .style('font-size', (d) => `${(d * 4) + 1}rem`)
+      .style('opacity', (d) => d + 0.2)
+  </script>
+</body>
+</html>
