@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <svg id="svg" width="500" height="500">
+    <!-- <circle cx="250" cy="250" r="123" fill="#0ff"/>
+    <circle cx="100" cy="100" r="50" fill="#ff0000"/>
+    <circle cx="400" cy="100" r="30" fill="#00ff00"/>
+    <circle cx="100" cy="400" r="70" fill="#0000ff"/>
+    <circle cx="50" cy="50" r="15" fill="#8b4513"/>
+    <circle cx="450" cy="450" r="45" fill="#808080"/>  -->
+  </svg>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    // Your code here
+    function makeRandomData(n) {
+      const array = []
+      for (let i = 0; i < n; i += 1) {
+        array.push({ a: Math.random(), b: Math.random(), c: Math.random() })
+      }
+      return array
+    }
+
+    const data = makeRandomData(15)
+
+    d3.select('#svg')
+      .style('border', '1px solid')
+      // select all <circle>s in #svg
+      .selectAll('ellipse')
+      .data(data) // add some data
+      .enter() // enter the data
+      .append('ellipse') // append some circles
+        // Set attributes for SVG circles
+      .attr('cx', (d, i) => i * 500 / data.length)
+      .attr('cy', d => d.a * 500)
+      .attr('rx', d => d.b * 75)
+      .attr('ry', d => d.c * 75)
+      .attr('fill', d => `hsl(${d.a * 360}, 100%, 50%)`)
+      .attr('opacity', () => 0.5)
+      .attr('stroke', '#000')
+      .attr('stroke-width', d => 5 * d.b)
+      .attr('stroke', d => `hsl(${d.b * 360}, 100%, 50%)`)
+  </script>
+</body>
+</html>
+
