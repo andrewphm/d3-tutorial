@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <svg id="svg" width="800" height="500"></svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    d3.csv('/data/cities.csv')
+      .then(data => {
+        console.log(data)
+        const minX = d3.min(data, d => parseFloat(d.x))
+        const maxX = d3.max(data, d => parseFloat(d.x))
+        const minY = d3.min(data, d => parseFloat(d.y))
+        const maxY = d3.max(data, d => parseFloat(d.y))
+
+        const countries = Array.from(new Set(data.map(d => d.country)))
+
+        const xScale = d3.scaleLinear()
+          .domain([minX - 50, maxX + 50]) // Set the domain
+          .range([0, 800])     // Set the range
+
+        const yScale = d3.scaleLinear()
+          .domain([minY - 50, maxY + 50])
+          .range([0, 500])
+
+        const popScale = d3.scaleSqrt()
+          .domain(d3.extent(data, d => parseInt(d.population)))
+          .range([20, 200])
+
+        const countryScale = d3.scaleOrdinal()
+          .domain(countries)
+          .range(d3.schemeCategory10)
+
+        d3.select('#svg')
+          .style('border', '1px solid')
+          // select all <circle>s in #svg
+          .selectAll('circle')
+          .data(data)
+          .enter()
+          .append('circle')
+          .attr('cx', d => xScale(d.x)) // scale x with xScale
+          .attr('cy', d => yScale(d.y)) // scale y with yScale
+          .attr('r', d => popScale(d.population))
+          .attr('fill', `red`)
+          .attr('opacity', 0.25)
+          .attr('fill', d => countryScale(d.country))
+      })
+  </script>
+</body>
+</html>
