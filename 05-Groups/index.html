@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <svg id="svg" width="800" height="500"></svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    d3.csv('/data/cities.csv')
+      .then(data => {
+        console.log(data)
+        const minX = d3.min(data, d => parseFloat(d.x))
+        const maxX = d3.max(data, d => parseFloat(d.x))
+        const minY = d3.min(data, d => parseFloat(d.y))
+        const maxY = d3.max(data, d => parseFloat(d.y))
+
+        const countries = Array.from(new Set(data.map(d => d.country)))
+
+        const xScale = d3.scaleLinear()
+          .domain([minX - 50, maxX + 50]) // Set the domain
+          .range([0, 800])     // Set the range
+
+        const yScale = d3.scaleLinear()
+          .domain([minY - 50, maxY + 50])
+          .range([0, 500])
+
+        const popScale = d3.scaleSqrt()
+          .domain(d3.extent(data, d => parseInt(d.population)))
+          .range([20, 200])
+
+        const countryScale = d3.scaleOrdinal()
+          .domain(countries)
+          .range(d3.schemeCategory10)
+
+        const node = d3.select('#svg')
+          .style('border', '1px solid')
+          .selectAll('g')
+          .data(data)
+          .enter()
+
+        const groups = node
+          .append('g')
+
+        groups
+        .append('circle')
+        .attr('cx', d => xScale(d.x))
+        .attr('cy', d => yScale(d.y))
+        .attr('r', d => popScale(d.population))
+        .attr('opacity', 0.25)
+        .attr('fill', d => countryScale(d.country))
+
+        const angle = Math.PI * 1.75
+        groups
+          .append('text')
+          .text(d => d.label + ", " + d.country)
+          .attr('x', d => xScale(d.x))
+          .attr('y', d => yScale(d.y))
+          .attr('dx', d => (Math.cos(angle) * (popScale(d.population) + 15)))
+          .attr('dy', d => (Math.sin(angle) * (popScale(d.population) + 15)))
+          .style('font-family', 'Helvetica')
+          .style('font-size', '18px')
+
+        groups
+          .append('text')
+          .text(d => d.label + ", " + d.country)
+          .attr('x', 10)
+          .attr('y', (d, i) => 490 - i * 20)
+          .style('font-family', 'Helvetica')
+          .style('font-size', '18px')
+
+        groups
+          .append('path')
+          .attr('d', d => {
+            const x1 = xScale(d.x)
+            const y1 = yScale(d.y)
+            const x2 = xScale(d.x) + (Math.cos(angle) * (popScale(d.population) + 10))
+            const y2 = yScale(d.y) + (Math.sin(angle) * (popScale(d.population) + 10))
+            const x3 = x2 + 100
+            const y3 = y2
+            return d3.line()([[x1, y1], [x2, y2], [x3, y3]])
+          })
+          .attr('stroke', '#000')
+          .attr('fill', 'none')
+      })
+  </script>
+</body>
+</html>
