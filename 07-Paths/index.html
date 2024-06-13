@@ -61,7 +61,9 @@
         .attr('stroke', d => stateScale(state))
         .attr('fill', 'none')
         // .attr('stroke-dasharray', '5,5')
-        .attr('opacity', 0.5)
+        .attr('stroke-linecap', 'round') // rounded line ends
+        .attr('stroke-linejoin', 'round') // rounded line joins
+        // .attr('opacity', 0.5)
     }
 
     d3.csv('./precipitation.csv')
