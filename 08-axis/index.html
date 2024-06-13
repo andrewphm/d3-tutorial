@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Using Paths</title>
+  </head>
+  <body>
+  <style>
+    /* Put the box in the center of the page */
+    body, html {
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #svg {
+      border: 1px solid;
+    }
+  </style>
+
+  <svg id="svg" width="600" height="450"></svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    function getDataForState(data, state) {
+      const arr = data
+        .filter(d => d.state === state)
+        .filter(d => !isNaN(d.precipitation))
+        .map(d => {
+          d.precipitation = parseFloat(d.precipitation)
+          return d
+        })
+      return arr
+    }
+
+    function handleData(data, state) {
+      const width = 600
+      const height = 400
+      const margin = 40
+      const parseTime = d3.timeParse('%d/%m/%Y')
+      let stateData = getDataForState(data, state)
+      stateData = stateData.map(d => {
+        d.date = parseTime(d.date)
+        return d
+      })
+
+      const dateExtent = d3.extent(stateData, d => d.date)
+      const xScale = d3.scaleTime()
+        .domain(dateExtent)
+        .range([margin, width - margin])
+        .nice()
+      const percipitationExtents = d3.extent(stateData, d => d.precipitation)
+      const yScale = d3.scaleLinear()
+        .domain(percipitationExtents)
+        .range([height - margin, margin])
+
+      const states = new Set(data.map(d => d.state))
+      const stateScale = d3.scaleOrdinal()
+        .domain(states)
+        .range(d3.schemeCategory10)
+
+        // line generator
+      const linegen = d3.line() // create a line generator
+        .x(d => xScale(d.date)) // map the x to the index
+        .y(d => yScale(d.precipitation)) // map y to percipitation
+        .curve(d3.curveLinear) // apply a curve type
+
+        const svg = d3.select('#svg')
+        const graph = svg.append('g')
+        graph
+          .append('path')
+          .attr('d', linegen(stateData))
+          .attr('stroke-width', 1)
+          .attr('stroke', d => stateScale(state))
+          .attr('fill', 'none')
+
+        const bottomAxis = d3.axisBottom(xScale)
+        const leftAxis = d3.axisLeft(yScale)
+        svg
+          .append('g')
+          .attr('transform', `translate(0, ${height - margin})`)
+          .call(bottomAxis)
+
+        svg
+          .append('g')
+          .attr('transform', `translate(${margin}, 0)`)
+          .call(leftAxis)
+
+          // Add legend
+        const legend = svg.append('g')
+          .attr('transform', `translate(${width / 2}, ${height + 10})`) // Positioning the legend
+          .attr('class', 'legend')
+
+        legend.append('rect')
+          .attr('x', -20)
+          .attr('y', 0)
+          .attr('width', 18)
+          .attr('height', 18)
+          .attr('fill', stateScale(state))
+
+        legend.append('text')
+          .attr('x', 0)
+          .attr('y', 14)
+          .text(state)
+          .style('font-size', '14px')
+          .style('alignment-baseline', 'middle')
+    }
+
+    d3.csv('./precipitation.csv')
+      .then(data => {
+        handleData(data, 'BA')
+      })
+  </script>
+  </body>
+</html>
+
