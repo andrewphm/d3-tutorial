@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Using Paths</title>
+  </head>
+  <body>
+  <style>
+    /* Put the box in the center of the page */
+    body, html {
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #svg {
+      border: 1px solid;
+    }
+  </style>
+
+  <svg id="svg" width="600" height="400"></svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    function getDataForState(data, state) {
+      const arr = data
+        .filter(d => d.state === state)
+        .filter(d => !isNaN(d.precipitation))
+        .map(d => {
+          d.precipitation = parseFloat(d.precipitation)
+          return d
+        })
+      return arr
+    }
+
+    function handleData(data, state) {
+      const baData = getDataForState(data, state)
+      const xScale = d3.scaleLinear()
+        .domain([0, baData.length])
+        .range([40, 560])
+      const percipitationExtents = d3.extent(baData, d => d.precipitation)
+      const yScale = d3.scaleLinear()
+        .domain(percipitationExtents)
+        .range([360, 40])
+
+      const states = new Set(data.map(d => d.state))
+      const stateScale = d3.scaleOrdinal()
+        .domain(states)
+        .range(d3.schemeCategory10)
+
+        // line generator
+      const linegen = d3.line() // create a line generator
+        .x((d, i) => xScale(i)) // map the x to the index
+        .y(d => yScale(d.precipitation)) // map y to percipitation
+        .curve(d3.curveLinear) // apply a curve type
+
+      d3.select('#svg')
+        .append('path') // append a path
+        .attr('d', linegen(baData)) // generate a line
+        .attr('stroke-width', 4)
+        .attr('stroke', d => stateScale(state))
+        .attr('fill', 'none')
+        // .attr('stroke-dasharray', '5,5')
+        .attr('opacity', 0.5)
+    }
+
+    d3.csv('./precipitation.csv')
+      .then(data => {
+        handleData(data, 'BA')
+        handleData(data, 'SC')
+      })
+
+  </script>
+  </body>
+</html>
+
