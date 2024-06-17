@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D3 Double Pie Chart</title>
+  <style>
+    body, html {
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+    #svg {
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <svg id="svg" width="800" height="800"></svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    function handleData(data) {
+      const width = 800
+      const height = 800
+      const margin = 40
+
+      const colorScale = d3.scaleSequential()
+        .domain([0, data.length])
+        .interpolator(d3.interpolateRainbow);
+
+      // Group data by country and sum populations
+      const countryData = Array.from(d3.group(data, d => d.country), ([country, cities]) => ({
+        country,
+        population: d3.sum(cities, d => d.population)
+      }));
+
+      const pieGen = d3.pie().value(d => d.population)
+      const arcData = pieGen(data)
+      const countryArcData = pieGen(countryData)
+
+      const arcGen = d3.arc()
+        .innerRadius(40)
+        .outerRadius(200)
+        .padAngle(0.01)
+
+      const countryArcGen = d3.arc()
+        .innerRadius(200)
+        .outerRadius(280)
+        .padAngle(0.01)
+
+      const svg = d3.select('#svg')
+
+      const pieGroup = svg
+        .append('g')
+        .attr('transform', `translate(${width / 2}, ${height / 2})`)
+
+      // City-level pie chart
+      const piePath = pieGroup
+        .selectAll('path.city')
+        .data(arcData)
+        .enter()
+        .append('path')
+        .attr('class', 'city')
+        .attr('d', arcGen)
+        .attr('fill', (d, i) => colorScale(i))
+
+      // Country-level pie chart
+      const countryPiePath = pieGroup
+        .selectAll('path.country')
+        .data(countryArcData)
+        .enter()
+        .append('path')
+        .attr('class', 'country')
+        .attr('d', countryArcGen)
+        .attr('fill', (d, i) => d3.interpolateBlues((i + 1) / countryData.length))
+
+      const labels = svg
+        .append('g')
+
+      labels
+        .selectAll('circle')
+        .data(data)
+        .enter()
+        .append('circle')
+        .attr('r', '5')
+        .attr('cx', 10)
+        .attr('cy', (d, i) => (i * 20) + 15)
+        .attr('fill', (d, i) => colorScale(i))
+
+      labels
+        .selectAll('text')
+        .data(data)
+        .enter()
+        .append('text')
+        .text(d => `${d.label} - ${d.country}`)
+        .attr('x', 20)
+        .attr('y', (d, i) => (i * 20) + 20)
+
+      const rLabels = svg
+        .append('g')
+        .attr('transform', `translate(${width / 2}, ${height / 2})`)
+
+      const arcLabels = d3.arc()
+        .outerRadius(160)
+        .innerRadius(160)
+
+      const countryArcLabels = d3.arc()
+        .outerRadius(300)
+        .innerRadius(300)
+
+      rLabels
+        .selectAll('text.city')
+        .data(data)
+        .enter()
+        .append('text')
+        .attr('class', 'city')
+        .text(d => d.label)
+        .attr("transform", (d, i) => `translate(${arcLabels.centroid(arcData[i])})`)
+        .attr('text-anchor', 'middle')
+
+      rLabels
+        .selectAll('text.country')
+        .data(countryData)
+        .enter()
+        .append('text')
+        .attr('class', 'country')
+        .text(d => d.country)
+        .attr("transform", (d, i) => `translate(${countryArcLabels.centroid(countryArcData[i])})`)
+        .attr('text-anchor', 'middle')
+    }
+
+    d3.csv('./cities.csv', d => {
+      return {
+        label: d.label,
+        population: +d.population,
+        country: d.country
+      };
+    }).then(handleData);
+  </script>
+</body>
+</html>
