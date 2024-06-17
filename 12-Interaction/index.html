@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Three-Year Temperature Comparison Area Chart with Transitions</title>
+  </head>
+  <body>
+    <style>
+      body,
+      html {
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+      #svg {
+        border: 1px solid;
+      }
+      .select-container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 600px;
+        margin: 1rem 0;
+      }
+      select {
+        font-size: 1rem;
+      }
+    </style>
+
+    <svg id="svg" width="600" height="400"></svg>
+
+    <div class="select-container">
+      <select id="yearSelect1"></select>
+      <select id="yearSelect2"></select>
+      <select id="yearSelect3"></select>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script>
+      const selects = [
+        document.getElementById('yearSelect1'),
+        document.getElementById('yearSelect2'),
+        document.getElementById('yearSelect3')
+      ];
+      let svg, graph, xscale, yscale, bottomAxis, leftAxis;
+      let allData;
+
+      function convertToArray(obj) {
+        const months = [
+          'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+          'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+        ];
+        return months.map((month) => {
+          const temp = parseFloat(obj[month]);
+          return { month: month, temp };
+        });
+      }
+
+      function addSelectValues(data) {
+        const years = [...new Set(data.map(d => d.YEAR))];
+        selects.forEach((select, index) => {
+          select.innerHTML = years.map(year =>
+            `<option value="${year}" ${year === years[index] ? 'selected' : ''}>${year}</option>`
+          ).join('');
+        });
+      }
+
+      function setupGraph() {
+        const width = 600;
+        const height = 300;
+        const margin = 50;
+
+        svg = d3.select('#svg');
+        graph = svg.append('g');
+
+        xscale = d3.scaleLinear()
+          .domain([0, 11])
+          .range([margin, width - margin]);
+
+        const monthsScale = d3.scaleTime()
+          .domain([new Date('1901-01-01'), new Date('1901-12-01')])
+          .range([margin, width - margin])
+          .nice();
+
+        yscale = d3.scaleLinear()
+          .range([height - margin, margin])
+          .nice();
+
+        bottomAxis = d3.axisBottom(monthsScale);
+        leftAxis = d3.axisLeft(yscale);
+
+        svg.append('g')
+          .attr('class', 'x-axis')
+          .attr('transform', `translate(0, ${height - margin})`);
+
+        svg.append('g')
+          .attr('class', 'y-axis')
+          .attr('transform', `translate(${margin}, 0)`);
+      }
+
+      function updateGraph() {
+        const selectedYears = selects.map(select => select.value);
+        const yearData = selectedYears.map(year => {
+          const yearObj = allData.find(d => d.YEAR === year);
+          return {
+            year: year,
+            months: convertToArray(yearObj)
+          };
+        });
+
+        const allTemps = yearData.flatMap(yd => yd.months.map(m => m.temp));
+        const tempExtent = d3.extent(allTemps);
+
+        // Transition for y-axis
+        yscale.domain(tempExtent);
+        svg.select('.y-axis')
+          .transition()
+          .duration(750)
+          .call(leftAxis);
+
+        svg.select('.x-axis')
+          .call(bottomAxis);
+
+        const linegen = d3.area()
+          .x((d, i) => xscale(i))
+          .y0((d) => yscale(d.temp))
+          .y1(300 - 50)
+          .curve(d3.curveBasis);
+
+        // Color scale for years
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(selectedYears);
+
+        // Update areas with transition
+        const areas = graph.selectAll('.area')
+          .data(yearData, d => d.year);
+
+        areas.enter()
+          .append('path')
+          .attr('class', 'area')
+          .merge(areas)
+          .attr('fill-opacity', 0)
+          .attr('stroke-opacity', 0)
+          .transition()
+          .duration(750)
+          .attr('d', d => linegen(d.months))
+          .attr('stroke-width', 1)
+          .attr('stroke', d => colorScale(d.year))
+          .attr('fill', d => colorScale(d.year))
+          .attr('fill-opacity', 0.3)
+          .attr('stroke-opacity', 1);
+
+        areas.exit()
+          .transition()
+          .duration(750)
+          .attr('fill-opacity', 0)
+          .attr('stroke-opacity', 0)
+          .remove();
+      }
+
+      function handleData(data) {
+        allData = data;
+        addSelectValues(data);
+        setupGraph();
+        updateGraph();
+
+        selects.forEach(select => {
+          select.addEventListener('change', updateGraph);
+        });
+      }
+
+      d3.csv('./Weather Data in India from 1901 to 2017.csv').then((data) => {
+        handleData(data);
+      });
+    </script>
+  </body>
+</html>
