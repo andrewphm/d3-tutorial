@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D3 Double Pie Chart</title>
+  <style>
+    body, html {
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+    #svg {
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <svg id="svg" width="600" height="600"></svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    function handleData(data) {
+      const width = 600
+      const height = 600
+      const margin = 40
+      const num_f = d3.format(".2s")
+      const root = d3.hierarchy({ children: data })
+        .sum(d => d.population)
+      const colorScale = d3
+        .scaleSequential(d3.interpolateViridis)
+        .domain(d3.extent(data, d => d.population))
+      const pack = d3.pack()
+        .size([500, 500])
+        .padding(10)
+
+      const rootNode = pack(root)
+
+      d3.select('#svg')
+        .style('border', '1px solid')
+        .selectAll('g')
+        .data(rootNode.leaves())
+        .join('g') // Join your group.
+        // Position each node using x and y
+        .attr('transform', d => `translate(${d.x}, ${d.y})`)
+        // Add a circle to each group
+        .append('circle')
+        // Set the radius
+        .attr('r', d => d.r)
+        // Set the color of each circle
+        .attr('fill', d => {
+          // Note! d is hieracty data and the source data is on the data property!
+          return colorScale(d.data.population)
+        })
+
+      // Add a text node to each group
+      d3.select('#svg')
+        // find each group
+        .selectAll('g')
+        .data(rootNode.leaves())
+        .join('g')
+        // Add a text node
+        .append('text')
+        // Set the text
+        .text(d => num_f(d.data.population))
+        // Set the font
+        .attr('font-family', 'Helvetica')
+        // Position the text in the center
+        .style('text-anchor', 'middle')
+        .style('alignment-baseline', 'middle')
+        .style('mix-blend-mode', 'difference')
+        .style('fill', 'white')
+
+    }
+
+    d3.csv('./cities.csv', d => {
+      return {
+        label: d.label,
+        population: +d.population,
+        country: d.country
+      };
+    }).then(handleData);
+  </script>
+</body>
+</html>
