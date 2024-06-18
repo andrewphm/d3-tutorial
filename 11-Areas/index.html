@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Multi-Year Temperature Area Chart</title>
+  </head>
+  <body>
+    <style>
+      body, html {
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #svg {
+        border: 1px solid;
+      }
+    </style>
+
+    <svg id="svg" width="600" height="400"></svg>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script>
+      function convertToArray(obj) {
+        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        return months.map((month) => {
+          const temp = parseFloat(obj[month]);
+          return { month: month, temp };
+        });
+      }
+
+      function handleData(data) {
+        const width = 600;
+        const height = 300;
+        const margin = 50;
+
+        // Get data for multiple years
+        const years = ['1901', '1902', '1903', '1904', '1905'];
+        const yearData = years.map(year => ({
+          year: year,
+          months: convertToArray(data.filter(d => d.YEAR === year)[0])
+        }));
+
+        // Find global min and max temperatures
+        const allTemps = yearData.flatMap(yd => yd.months.map(m => m.temp));
+        const tempExtent = d3.extent(allTemps);
+
+        const xscale = d3.scaleLinear()
+          .domain([0, 11])
+          .range([margin, width - margin]);
+
+        const monthsScale = d3.scaleTime()
+          .domain([new Date('1901-01-01'), new Date('1901-12-01')])
+          .range([margin, width - margin])
+          .nice();
+
+        const yscale = d3.scaleLinear()
+          .domain(tempExtent)
+          .range([height - margin, margin])
+          .nice();
+
+        const bottomAxis = d3.axisBottom(monthsScale);
+        const leftAxis = d3.axisLeft(yscale);
+
+        const svg = d3.select('#svg');
+
+        const graph = svg.append('g');
+
+        // Color scale for years
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
+          .domain(years);
+
+        const linegen = d3.area()
+          .x((d, i) => xscale(i))
+          .y0(d => yscale(d.temp))
+          .y1(height - margin)
+          .curve(d3.curveBasis);
+
+        // Draw area for each year
+        yearData.forEach(yd => {
+          graph.append('path')
+            .attr('d', linegen(yd.months))
+            .attr('stroke-width', 1)
+            .attr('stroke', colorScale(yd.year))
+            .attr('fill', colorScale(yd.year))
+            .attr('fill-opacity', 0.3);
+        });
+
+        svg.append('g')
+          .attr('transform', `translate(0, ${height - margin})`)
+          .call(bottomAxis);
+
+        svg.append('g')
+          .attr('transform', `translate(${margin}, 0)`)
+          .call(leftAxis);
+
+        // Add legend
+        const legend = svg.append('g')
+          .attr('transform', `translate(${width - margin}, ${margin})`);
+
+        years.forEach((year, i) => {
+          legend.append('rect')
+            .attr('x', 0)
+            .attr('y', i * 20)
+            .attr('width', 15)
+            .attr('height', 15)
+            .attr('fill', colorScale(year));
+
+          legend.append('text')
+            .attr('x', 20)
+            .attr('y', i * 20 + 12)
+            .text(year)
+            .attr('font-size', '12px');
+        });
+      }
+
+      d3.csv('./Weather Data in India from 1901 to 2017.csv').then((data) => {
+        handleData(data);
+      });
+    </script>
+  </body>
+</html>
