@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D3 Double Pie Chart</title>
+    <style>
+      body,
+      html {
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+      }
+      #svg {
+        border: 1px solid #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <svg id="svg" width="600" height="600"></svg>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script>
+      function handleData(data) {
+        const width = 600;
+        const height = 600;
+        const margin = 40;
+        const byCountry = {
+          label: 'world',
+          children: [],
+          population: data.reduce((acc, d) => parseInt(d.population) + acc, 0),
+        };
+
+        const countryNames = Array.from(new Set(data.map((d) => d.country)));
+        countryNames.forEach((d) => {
+          const cities = data.filter((c) => c.country === d);
+          const pop = cities.reduce((acc, d) => parseInt(d.population) + acc, 0);
+          byCountry.children.push({
+            label: d,
+            population: pop,
+            children: cities,
+          });
+        });
+        console.log(byCountry);
+
+        const num_f = d3.format('.2s');
+        const root = d3.hierarchy(byCountry);
+        root.sum((d) => d.population);
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+        const pack = d3.pack().size([500, 500]).padding(2);
+
+        const rootNode = pack(root);
+
+        const nodes = d3
+          .select('#svg')
+          .selectAll('g')
+          .data(rootNode.descendants())
+          .join('g')
+          .attr('transform', (d) => `translate(${d.x + 50}, ${d.y + 50})`);
+
+        nodes
+          .append('circle')
+          .attr('r', (d) => d.r)
+          .attr('fill', (d) => {
+            if (d.data.country === undefined) {
+              return colorScale(d.data.label);
+            }
+            return colorScale(d.data.country);
+          })
+          .attr('opacity', '0.5');
+
+        nodes
+          .append('text')
+          .text((d) => `${num_f(d.data.population)}`)
+          .attr('font-family', 'Helvetica')
+          .style('text-anchor', 'middle')
+          .style('alignment-baseline', 'middle')
+          .style('fill', 'white');
+
+        nodes
+          .append('text')
+          .text((d) => `${d.data.label}`)
+          .attr('font-family', 'Helvetica')
+          .style('text-anchor', 'middle')
+          .style('alignment-baseline', 'middle')
+          // set the fill color to black for country and world
+          .style('fill', (d) => {
+            if (d.data.country === undefined) {
+              return 'black';
+            }
+            return 'white';
+          })
+          // Offset the y by the radius for the country and world
+          .attr('transform', (d) => {
+            if (d.data.country === undefined) {
+              return `translate(0, -${d.r})`;
+            }
+
+            return 'translate(0, -8)';
+          });
+      }
+
+      d3.csv('./cities.csv', (d) => {
+        return {
+          label: d.label,
+          population: +d.population,
+          country: d.country,
+        };
+      }).then(handleData);
+    </script>
+  </body>
+</html>
