@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D3 Maps US</title>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        display: flex;
+        height: 100vh;
+        justify-content: center;
+        align-items: center;
+      }
+      svg {
+        background-color: #f4f4f4;
+        border: 1px solid #333;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script>
+      async function loadMap() {
+        // load and display the World
+        const topology = await d3.json('world-110m2.json');
+        g.selectAll('path')
+          // Use topojson here to extract the topology from the map data
+          .data(topojson.feature(topology, topology.objects.countries).features)
+          .enter()
+          .append('path')
+          .attr('d', path)
+          .attr('fill', 'grey')
+          .attr('stroke', 'white')
+          .attr('stroke-width', 0.25)
+          .attr('fill', (d, i) => `hsl(${(360 / 176) * i}, 70%, 50%)`);
+      }
+
+      loadMap();
+
+      const width = 950;
+      const height = 500;
+      const projection = d3
+        .geoMercator()
+        .scale(100)
+        .translate([width / 2, height / 2]);
+
+      const svg = d3.select('body').append('svg').attr('width', width).attr('height', height);
+
+      const path = d3.geoPath().projection(projection);
+
+      const g = svg.append('g');
+    </script>
+  </body>
+</html>
