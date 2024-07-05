@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D3 Maps US</title>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        display: flex;
+        height: 100vh;
+        justify-content: center;
+        align-items: center;
+      }
+      svg {
+        background-color: #f4f4f4;
+        border: 1px solid #333;
+        margin: 0 auto;
+      }
+      .tooltip {
+        position: absolute;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 5px;
+        border-radius: 5px;
+        font-size: 12px;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script>
+      const colorScale = d3.scaleSequential().interpolator(d3.interpolateRainbow).domain([0, 176]);
+
+      // Create tooltip div
+      const tooltip = d3.select('body').append('div').attr('class', 'tooltip').style('opacity', 0);
+
+      async function loadMap() {
+        const earthquakeData = await d3.csv('earthquake.csv');
+
+        const data = earthquakeData.filter((d) => d.Magnitude > 7);
+        const topology = await d3.json('world-110m2.json');
+        g.selectAll('path')
+          .data(topojson.feature(topology, topology.objects.countries).features)
+          .enter()
+          .append('path')
+          .attr('d', path)
+          .attr('fill', (d, i) => colorScale(i))
+          .attr('stroke', 'white')
+          .attr('stroke-width', 0.25);
+
+        // Add circles to a group
+        d3.select('svg')
+          .selectAll('circle')
+          .data(data)
+          .enter()
+          .append('circle')
+          // Position the circles using geo coords and projection
+          .attr('cx', (d) => projection([d.Longitude, d.Latitude])[0])
+          .attr('cy', (d) => projection([d.Longitude, d.Latitude])[1])
+          // Style the circles
+          .attr('r', 10)
+          .attr('fill', 'rgba(255, 0, 0, 0.15)')
+          .attr('stroke', 'rgba(255, 0, 0, 0.5)')
+          .attr('stroke-width', 1)
+          // Add event listeners for tooltip
+          .on('mouseover', function (event, d) {
+            tooltip.transition().duration(200).style('opacity', 0.9);
+            tooltip
+              .html(`Magnitude: ${d.Magnitude}<br>Depth: ${d.Depth}<br>Type: ${d.Type}`)
+              .style('left', event.pageX + 10 + 'px')
+              .style('top', event.pageY - 28 + 'px');
+          })
+          .on('mouseout', function (d) {
+            tooltip.transition().duration(500).style('opacity', 0);
+          });
+      }
+
+      loadMap();
+
+      const width = 950;
+      const height = 500;
+      const projection = d3
+        .geoMercator()
+        .scale(150)
+        .translate([width / 2, height / 2])
+        .rotate([0, 0, 0]);
+
+      const svg = d3.select('body').append('svg').attr('width', width).attr('height', height);
+
+      const path = d3.geoPath().projection(projection);
+
+      const g = svg.append('g');
+    </script>
+  </body>
+</html>
