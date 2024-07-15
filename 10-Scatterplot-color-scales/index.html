@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D3 Precipitation Line Chart for BA State</title>
+  <style>
+    body, html {
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+    #svg {
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <svg id="svg" width="800" height="500"></svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    function parseDate(dateString) {
+      const [day, month, year] = dateString.split('/');
+      return new Date(year, month - 1, day);
+    }
+
+    function getDataForState(data, state) {
+      return data
+        .filter(d => d.state === state)
+        .filter(d => !isNaN(d.precipitation))
+        .map(d => ({
+          ...d,
+          precipitation: parseFloat(d.precipitation),
+          date: parseDate(d.date)
+        }))
+        .sort((a, b) => a.date - b.date);
+    }
+
+    function handleData(data) {
+      const margin = { top: 40, right: 30, bottom: 60, left: 60 };
+      const width = 800 - margin.left - margin.right;
+      const height = 500 - margin.top - margin.bottom;
+      const svg = d3.select('#svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+      const stateData = getDataForState(data, 'BA');
+
+      const xScale = d3.scaleTime()
+        .domain(d3.extent(stateData, d => d.date))
+        .range([0, width]);
+
+      const yScale = d3.scaleLinear()
+        .domain([0, d3.max(stateData, d => d.precipitation)])
+        .nice()
+        .range([height, 0]);
+
+      const sizeScale = d3.scaleSqrt()
+        .domain([0, d3.max(stateData, d => d.precipitation)])
+        .range([2, 10]);
+
+      const colorScale = d3.scaleSequential(d3.interpolateRainbow)
+        .domain([0, stateData.length]);
+
+      const linegen = d3.line()
+        .x(d => xScale(d.date))
+        .y(d => yScale(d.precipitation))
+        .curve(d3.curveMonotoneX);
+
+      // Add the line
+      svg.append('path')
+        .datum(stateData)
+        .attr('d', linegen)
+        .attr('stroke', 'steelblue')
+        .attr('fill', 'none')
+        .attr('stroke-width', 2)
+        .attr('stroke-linecap', 'round')
+        .attr('stroke-linejoin', 'round');
+
+      // Add X axis
+      svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(xScale).ticks(30))
+        .selectAll('text')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end');
+
+      // Add Y axis
+      svg.append('g')
+        .call(d3.axisLeft(yScale).tickFormat(d3.format('.2f')));
+
+      // Add X axis label
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', height + margin.bottom - 10)
+        .style('text-anchor', 'middle')
+        .text('Date');
+
+      // Add Y axis label
+      svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 0 - margin.left)
+        .attr('x', 0 - (height / 2))
+        .attr('dy', '1em')
+        .style('text-anchor', 'middle')
+        .text('Precipitation (mm)');
+
+      // Add title
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 0 - (margin.top / 2))
+        .attr('text-anchor', 'middle')
+        .style('font-size', '16px')
+        .style('font-weight', 'bold')
+        .text('Precipitation in BA State Over Time');
+
+      // Add scattor plot
+      svg
+        .append('g')
+        .selectAll('circle')
+        .data(stateData)
+        .enter()
+        .append('circle')
+        .attr('cx', d => xScale(d.date))
+        .attr('cy', d => yScale(d.precipitation))
+        .attr('r', d => sizeScale(d.precipitation))
+        .attr('fill', (d, i) => colorScale(i))
+        .attr('fill-opacity', 0.7)
+        .attr('stroke', 'white')
+        .attr('stroke-width', .5)
+    }
+
+    d3.csv('./precipitation.csv', d => ({
+      state: d.state,
+      date: d.date,
+      precipitation: +d.precipitation
+    })).then(handleData);
+  </script>
+</body>
+</html>
